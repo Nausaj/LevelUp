@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="LevelUp">
+<meta name="theme-color" content="#ffffff">
+<link rel="manifest" href="manifest.json">
+<title>LevelUp</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --green:#1D9E75; --green-light:#E1F5EE; --green-dark:#085041;
+  --purple:#8b85e8; --orange:#e0714a; --yellow:#e0b44a; --blue:#378ADD;
+  --pink:#D4537E; --forest:#639922; --brown:#BA7517;
+  --bg:#f8f9fb; --white:#ffffff; --border:#f0f0f0;
+  --text:#111111; --muted:#6b7280; --hint:#9ca3af; --faint:#d1d5db;
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+  --font:'Sora',sans-serif; --mono:'DM Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);overscroll-behavior:none}
+#app{display:flex;flex-direction:column;height:100%;padding-top:var(--safe-top);padding-bottom:var(--safe-bottom);max-width:430px;margin:0 auto}
+
+/* VIEWS */
+.view{flex:1;overflow-y:auto;display:flex;flex-direction:column;min-height:0}
+.view.hidden{display:none!important}
+
+/* HEADER */
+.hdr{background:var(--white);padding:12px 16px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);flex-shrink:0}
+.logo{display:flex;align-items:center;gap:9px}
+.logo-icon{width:32px;height:32px;border-radius:9px;background:var(--green);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.logo-name{font-size:17px;font-weight:800;color:var(--text);letter-spacing:-.5px}
+.logo-sub{font-size:7px;color:var(--hint);letter-spacing:.08em;margin-top:-1px;font-family:var(--mono)}
+.gear-btn{background:#f3f4f6;border:none;border-radius:9px;width:32px;height:32px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center}
+
+/* MOTIV */
+.motiv{margin:10px 14px 0;padding:9px 12px;background:var(--green-light);border-radius:11px;border-left:3px solid var(--green);font-size:11px;color:var(--green-dark);line-height:1.5;flex-shrink:0;font-weight:600}
+
+/* STRIP */
+.strip{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;padding:10px 14px;flex-shrink:0}
+.sc{background:var(--white);border-radius:11px;padding:8px 4px;text-align:center;border:1px solid var(--border);display:flex;flex-direction:column;align-items:center;gap:3px}
+.sc-e{font-size:17px;line-height:1}
+.sc-d{font-size:9px;font-family:var(--mono);font-weight:500}
+.sc-l{font-size:7px;color:var(--hint);line-height:1.2}
+
+/* CAL NAV */
+.cal-nav{display:flex;align-items:center;justify-content:space-between;padding:0 14px;margin-bottom:8px;flex-shrink:0}
+.cal-m{font-size:13px;font-weight:700;color:var(--text);text-transform:capitalize}
+.nbtn{background:var(--white);border:1px solid var(--border);border-radius:8px;width:28px;height:28px;color:var(--muted);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.nbtn:active{background:var(--bg)}
+
+/* GRID */
+.wdays{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;padding:0 12px;margin-bottom:3px;flex-shrink:0}
+.wd{text-align:center;font-size:8px;color:var(--faint);padding:2px 0;font-family:var(--mono);font-weight:500}
+.cgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;padding:0 12px 12px;flex-shrink:0}
+.cell{aspect-ratio:1;border-radius:9px;border:1px solid var(--border);background:var(--white);display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:3px 1px 2px;cursor:pointer;transition:transform .1s;user-select:none}
+.cell:active{transform:scale(.86)}
+.cell.empty{border:none;background:none;cursor:default}
+.cell.today{border:2px solid var(--green)}
+.cell.future{opacity:.3;cursor:default;pointer-events:none}
+.cn{font-size:8px;color:var(--hint);font-family:var(--mono);align-self:flex-start;padding-left:3px;margin-bottom:1px}
+.cell.ha .cn{color:var(--text);font-weight:600}
+.cicons{display:flex;flex-wrap:wrap;justify-content:center}
+.ci{font-size:9px;line-height:1.1}
+
+/* TABS */
+.tabs{display:flex;background:var(--white);border-top:1px solid var(--border);flex-shrink:0}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;padding:8px 4px 10px;cursor:pointer;font-size:8px;color:var(--hint);gap:2px;border:none;background:none;font-family:var(--font);font-weight:600}
+.tab.active{color:var(--green)}
+.tab-ico{font-size:16px;line-height:1}
+
+/* SHEET OVERLAY */
+.sov{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;z-index:100}
+.sov.hid{display:none}
+.sht{background:var(--white);border-radius:20px 20px 0 0;padding:0 16px;padding-bottom:calc(18px + var(--safe-bottom));width:100%;border-top:1px solid var(--border);max-height:88vh;overflow-y:auto;animation:slideUp .25s cubic-bezier(.32,.72,0,1)}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.sh-h{width:34px;height:4px;background:var(--faint);border-radius:2px;margin:10px auto 13px}
+.sh-dt{font-size:11px;color:var(--muted);text-align:center;margin-bottom:12px;font-family:var(--mono);font-weight:500}
+.sec-lbl{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--hint);margin:12px 0 7px;font-weight:600}
+
+/* ACT ITEM IN SHEET */
+.sh-act{background:var(--bg);border-radius:11px;margin-bottom:8px;border:1.5px solid var(--border);overflow:hidden;transition:border-color .15s}
+.sh-act.on{border-color:var(--act-c,var(--green))}
+.sh-act-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;cursor:pointer}
+.shl{display:flex;align-items:center;gap:9px}
+.she{font-size:18px}
+.shn{font-size:12px;font-weight:700;color:var(--text)}
+.shck{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--white);flex-shrink:0;transition:all .15s}
+.sh-act.on .shck{background:var(--act-c,var(--green));border-color:var(--act-c,var(--green))}
+.sh-meta{display:none;gap:6px;padding:0 12px 10px}
+.sh-act.on .sh-meta{display:flex}
+.mf{flex:1;display:flex;flex-direction:column;gap:3px}
+.mf-lbl{font-size:8px;color:var(--hint);font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+.mf-box{display:flex;align-items:center;gap:4px;background:var(--white);border:1px solid var(--border);border-radius:8px;padding:5px 8px}
+.mf-box input{flex:1;background:none;border:none;color:var(--text);font-size:12px;font-family:var(--font);min-width:0;outline:none;width:100%}
+.mf-unit{font-size:9px;color:var(--hint);font-weight:600;white-space:nowrap;font-family:var(--mono)}
+
+/* EFFORT */
+.eff-row{display:flex;gap:5px;margin-bottom:4px}
+.eff-btn{flex:1;padding:7px 0;border-radius:9px;border:1px solid var(--border);background:var(--bg);color:var(--muted);font-size:10px;cursor:pointer;text-align:center;font-family:var(--font);font-weight:600;transition:all .15s}
+.eff-btn.ei{background:#e0714a12;border-color:var(--orange);color:var(--orange)}
+.eff-btn.em{background:#e0b44a12;border-color:var(--yellow);color:var(--yellow)}
+.eff-btn.ef{background:#1D9E7512;border-color:var(--green);color:var(--green)}
+
+/* BUTTONS */
+.btn-p{width:100%;background:var(--green);color:var(--white);border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--font);margin-top:12px}
+.btn-p:active{opacity:.85}
+.btn-g{width:100%;background:transparent;color:var(--hint);border:none;padding:9px;font-size:12px;cursor:pointer;font-family:var(--font);margin-top:3px}
+.btn-back{background:#f3f4f6;border:none;border-radius:9px;padding:6px 12px;font-size:12px;color:var(--muted);cursor:pointer;font-family:var(--font);font-weight:600}
+
+/* DETAIL SHEET */
+.det-act-card{background:var(--bg);border-radius:10px;padding:10px 12px;margin-bottom:7px}
+.det-pills{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+.det-pill{font-size:9px;border-radius:20px;padding:4px 9px;font-family:var(--mono);font-weight:500}
+
+/* RECAP */
+.recap-inner{padding:12px 14px 16px;flex:1;overflow-y:auto}
+.rec-title{font-size:15px;font-weight:800;color:var(--text);margin-bottom:12px}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:12px}
+.stat-card{background:var(--white);border-radius:11px;padding:10px 12px;border:1px solid var(--border)}
+.stat-v{font-size:20px;font-weight:800;color:var(--text);line-height:1}
+.stat-l{font-size:8px;color:var(--hint);margin-top:4px;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+.streak-box{background:var(--green-light);border-radius:11px;padding:10px 13px;display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.streak-txt{font-size:12px;font-weight:800;color:var(--green-dark)}
+.streak-sub{font-size:9px;color:#0F6E56;margin-top:2px;font-weight:600}
+.rec-sec{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--hint);margin:13px 0 7px;font-weight:600}
+.act-row{background:var(--white);border-radius:10px;margin-bottom:6px;border:1px solid var(--border);overflow:hidden}
+.act-row-main{display:flex;align-items:center;justify-content:space-between;padding:9px 12px}
+.act-row-sub{padding:0 12px 9px;display:flex;gap:5px;flex-wrap:wrap}
+.pill-tag{font-size:9px;border-radius:20px;padding:3px 8px;font-family:var(--mono);font-weight:500}
+.ppl-box{background:var(--white);border-radius:11px;border:1px solid var(--border);padding:10px 12px;margin-bottom:6px}
+.ppl-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-top:1px solid var(--bg)}
+.podium-wrap{display:flex;align-items:flex-end;justify-content:center;gap:6px;padding:10px 6px 0}
+.pod-col{display:flex;flex-direction:column;align-items:center;gap:3px;width:72px}
+.pod-bar{width:100%;border-radius:6px 6px 0 0;display:flex;align-items:flex-end;justify-content:center;padding-bottom:5px}
+
+/* MANAGE */
+.mgmt-inner{flex:1;overflow-y:auto;padding:12px 14px 16px;display:flex;flex-direction:column}
+.mgmt-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px;flex-shrink:0}
+.mgmt-title{font-size:15px;font-weight:800;color:var(--text)}
+.mgmt-row{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--white);border-radius:11px;margin-bottom:6px;border:1px solid var(--border)}
+.mgmt-edit{background:var(--green-light);border:none;border-radius:7px;width:28px;height:28px;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center}
+.mgmt-del{background:#FAECE7;border:none;border-radius:7px;width:28px;height:28px;cursor:pointer;font-size:12px;color:var(--orange);display:flex;align-items:center;justify-content:center}
+.divider{height:1px;background:var(--border);margin:13px 0}
+.form-box{background:var(--white);border-radius:11px;padding:13px;border:1px solid var(--border)}
+.fl{font-size:9px;text-transform:uppercase;letter-spacing:.07em;color:var(--hint);margin-bottom:5px;display:block;font-weight:600}
+.emo-inp{font-size:22px;background:var(--bg);border:1px solid var(--border);border-radius:9px;width:46px;height:40px;text-align:center;color:var(--text);font-family:var(--font);padding:0;cursor:pointer}
+.nm-inp{flex:1;font-size:12px;background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:0 10px;height:40px;color:var(--text);font-family:var(--font);font-weight:600}
+.nm-inp::placeholder{color:var(--faint)}
+.col-row{display:flex;gap:6px;flex-wrap:wrap}
+.col-sw{width:24px;height:24px;border-radius:6px;cursor:pointer;border:3px solid transparent;flex-shrink:0;transition:border-color .15s}
+.col-sw.sel{border-color:var(--text)}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- CAL VIEW -->
+  <div class="view" id="v-cal">
+    <div class="hdr">
+      <div class="logo">
+        <div class="logo-icon">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <circle cx="10" cy="10" r="8" stroke="#fff" stroke-width="1.3" fill="none"/>
+            <path d="M7 10 L9 8 L11 12 L13 10" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            <circle cx="14.5" cy="7" r="1.5" fill="#fff"/>
+            <path d="M14.5 7 L14.5 12" stroke="#fff" stroke-width="1.3" stroke-linecap="round"/>
+            <circle cx="14.5" cy="13" r="1" fill="#fff"/>
+          </svg>
+        </div>
+        <div><div class="logo-name">LevelUp</div><div class="logo-sub">SPORT & PASSION</div></div>
+      </div>
+      <button class="gear-btn" id="open-mgmt" aria-label="Gérer les activités">⚙️</button>
+    </div>
+    <div class="motiv" id="motiv"></div>
+    <div class="strip" id="strip"></div>
+    <div class="cal-nav">
+      <button class="nbtn" id="prev">‹</button>
+      <span class="cal-m" id="cal-m"></span>
+      <button class="nbtn" id="next">›</button>
+    </div>
+    <div class="wdays">
+      <div class="wd">LUN</div><div class="wd">MAR</div><div class="wd">MER</div>
+      <div class="wd">JEU</div><div class="wd">VEN</div><div class="wd">SAM</div><div class="wd">DIM</div>
+    </div>
+    <div class="cgrid" id="cgrid"></div>
+  </div>
+
+  <!-- RECAP VIEW -->
+  <div class="view hidden" id="v-recap">
+    <div class="recap-inner" id="recap-content"></div>
+  </div>
+
+  <!-- MANAGE VIEW -->
+  <div class="view hidden" id="v-mgmt">
+    <div class="mgmt-inner">
+      <div class="mgmt-hdr">
+        <div class="mgmt-title">⚙️ Activités</div>
+        <button class="btn-back" id="back-btn">← Retour</button>
+      </div>
+      <div id="mgmt-list"></div>
+      <div class="divider"></div>
+      <div class="rec-sec" style="margin-top:0">Ajouter une activité</div>
+      <div class="form-box">
+        <span class="fl">Emoji — tape ou colle depuis ton clavier</span>
+        <input class="emo-inp" id="add-emo" value="⭐" maxlength="2" style="display:block;margin-bottom:11px" aria-label="Emoji de l'activité">
+        <span class="fl">Nom</span>
+        <input class="nm-inp" id="add-name" placeholder="Ex : Natation" maxlength="20" style="width:100%;display:block;margin-bottom:11px" aria-label="Nom de l'activité">
+        <span class="fl">Couleur</span>
+        <div class="col-row" id="add-colors" style="margin-bottom:0"></div>
+        <button class="btn-p" id="add-act-btn">+ Ajouter</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs" id="tabs">
+    <button class="tab active" data-v="v-cal"><div class="tab-ico">📅</div>Calendrier</button>
+    <button class="tab" data-v="v-recap"><div class="tab-ico">📊</div>Récap</button>
+  </div>
+
+  <!-- SAISIE SHEET -->
+  <div class="sov hid" id="sov">
+    <div class="sht">
+      <div class="sh-h"></div>
+      <div class="sh-dt" id="sh-dt"></div>
+      <div id="sh-acts"></div>
+      <div class="sec-lbl">Effort global (facultatif)</div>
+      <div class="eff-row">
+        <button class="eff-btn" data-e="intense">🔥 Intense</button>
+        <button class="eff-btn" data-e="modere">⚡ Modéré</button>
+        <button class="eff-btn" data-e="facile">🌱 Facile</button>
+      </div>
+      <button class="btn-p" id="sh-save">Enregistrer</button>
+      <button class="btn-g" id="sh-cancel">Annuler</button>
+    </div>
+  </div>
+
+  <!-- DETAIL SHEET -->
+  <div class="sov hid" id="det-ov">
+    <div class="sht" id="det-sht"></div>
+  </div>
+
+  <!-- EDIT ACT SHEET -->
+  <div class="sov hid" id="edit-ov">
+    <div class="sht">
+      <div class="sh-h"></div>
+      <div style="font-size:14px;font-weight:800;color:var(--text);text-align:center;margin-bottom:14px">Modifier l'activité</div>
+      <span class="fl">Emoji</span>
+      <input class="emo-inp" id="edit-emo" maxlength="2" style="display:block;margin-bottom:11px" aria-label="Emoji">
+      <span class="fl">Nom</span>
+      <input class="nm-inp" id="edit-name" maxlength="20" style="width:100%;display:block;margin-bottom:11px" aria-label="Nom">
+      <span class="fl">Couleur</span>
+      <div class="col-row" id="edit-colors" style="margin-bottom:0"></div>
+      <button class="btn-p" id="edit-save" style="margin-top:16px">Enregistrer</button>
+      <button class="btn-g" id="edit-cancel">Annuler</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ─── CONSTANTS ───────────────────────────────────────────────
+const MOTIVS = [
+  "Chaque séance compte, même la plus courte 💪",
+  "Le mouvement est la meilleure médecine 🌿",
+  "Tu reviens toujours plus forte qu'avant 🔥",
+  "Petits pas, grands progrès — LevelUp ! 🎯",
+  "Joue, bouge, progresse 🎸",
+  "La régularité bat l'intensité 🚴",
+  "PPL today = gains tomorrow 🏋🏻‍♀️",
+  "Ton corps te remercie à chaque mouvement ✨",
+  "La constance crée des champions 🏆",
+  "Aujourd'hui encore, tu fais mieux qu'hier 🌱",
+];
+
+const COLS = ["#1D9E75","#8b85e8","#e0714a","#e0b44a","#378ADD","#D4537E","#639922","#E24B4A","#BA7517","#06b6d4"];
+const PPL_KEYS = ["push","pull","leg"];
+const DAY_NAMES = ["Dim","Lun","Mar","Mer","Jeu","Ven","Sam"];
+const POD_H = [64,46,36];
+const POD_C = ["#e0b44a","#9ca3af","#e0714a"];
+const MEDALS = ["🥇","🥈","🥉"];
+
+const DEFAULT_ACTS = [
+  {key:"bike",  emoji:"🚴",   label:"Vélo",       color:"#1D9E75"},
+  {key:"push",  emoji:"💪🏻", label:"Push",       color:"#e0714a"},
+  {key:"pull",  emoji:"🪽",   label:"Pull",       color:"#8b85e8"},
+  {key:"leg",   emoji:"🦵🏻", label:"Leg",        color:"#378ADD"},
+  {key:"game",  emoji:"🎮",   label:"Jeux vidéo", color:"#e0b44a"},
+  {key:"bass",  emoji:"🎸",   label:"Basse",      color:"#D4537E"},
+  {key:"rando", emoji:"🥾",   label:"Randonnée",  color:"#639922"},
+  {key:"read",  emoji:"📚",   label:"Lecture",    color:"#BA7517"},
+];
+
+// ─── PERSISTENT STATE ─────────────────────────────────────────
+function loadState() {
+  try {
+    const acts = JSON.parse(localStorage.getItem("lu_acts"));
+    const data = JSON.parse(localStorage.getItem("lu_data"));
+    return {
+      ACTS: acts && acts.length ? acts : JSON.parse(JSON.stringify(DEFAULT_ACTS)),
+      DATA: data && typeof data === "object" ? data : {}
+    };
+  } catch(e) {
+    return { ACTS: JSON.parse(JSON.stringify(DEFAULT_ACTS)), DATA: {} };
+  }
+}
+
+function saveState() {
+  try {
+    localStorage.setItem("lu_acts", JSON.stringify(ACTS));
+    localStorage.setItem("lu_data", JSON.stringify(DATA));
+  } catch(e) { console.warn("Sauvegarde impossible", e); }
+}
+
+let { ACTS, DATA } = loadState();
+
+// ─── APP STATE ────────────────────────────────────────────────
+const today = new Date(); today.setHours(0,0,0,0);
+let cur = new Date(today.getFullYear(), today.getMonth(), 1);
+let activeTab = "v-cal";
+let shKey = null, shActData = {}, shEffort = null;
+let editKey = null, editColor = COLS[0], addColor = COLS[0];
+
+// ─── UTILS ────────────────────────────────────────────────────
+function dk(y,m,d){ return `${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`; }
+
+function fmtDur(min) {
+  if (!min || min <= 0) return null;
+  if (min < 60) return `${min}min`;
+  const dd = Math.floor(min / 1440), h = Math.floor((min % 1440) / 60), mm = min % 60;
+  return [dd>0?`${dd}j`:null, h>0?`${h}h`:null, mm>0?`${mm}min`:null].filter(Boolean).join(" ");
+}
+
+function lastSeen(k) {
+  const ds = Object.entries(DATA)
+    .filter(([,v]) => v.acts && v.acts[k] !== undefined)
+    .map(([d]) => new Date(d));
+  return ds.length ? new Date(Math.max(...ds)) : null;
+}
+
+function dAgo(d) {
+  if (!d) return null;
+  return Math.floor((today - d) / 86400000);
+}
+
+// ─── VIEW SWITCHER ────────────────────────────────────────────
+function showView(id) {
+  ["v-cal","v-recap","v-mgmt"].forEach(v =>
+    document.getElementById(v).classList.toggle("hidden", v !== id)
+  );
+  document.getElementById("tabs").style.display = id === "v-mgmt" ? "none" : "flex";
+  activeTab = id;
+}
+
+// ─── COLOR PICKER ─────────────────────────────────────────────
+function buildColors(containerId, current, onPick) {
+  const el = document.getElementById(containerId);
+  el.innerHTML = COLS.map(c =>
+    `<div class="col-sw${c===current?" sel":""}" style="background:${c}" data-c="${c}"></div>`
+  ).join("");
+  el.querySelectorAll(".col-sw").forEach(s => s.addEventListener("click", () => {
+    onPick(s.dataset.c);
+    el.querySelectorAll(".col-sw").forEach(x => x.classList.toggle("sel", x.dataset.c === s.dataset.c));
+  }));
+}
+
+// ─── STRIP ────────────────────────────────────────────────────
+function renderStrip() {
+  const pplDs = Object.entries(DATA)
+    .filter(([,v]) => v.acts && PPL_KEYS.some(k => v.acts[k] !== undefined))
+    .map(([d]) => new Date(d));
+  const pplLast = pplDs.length ? new Date(Math.max(...pplDs)) : null;
+
+  const shown = [
+    { key:"ppl", emoji:"🏋🏻‍♀️", label:"PPL", color:"#e0714a", last: pplLast },
+    ...ACTS.filter(a => !PPL_KEYS.includes(a.key)).slice(0,3).map(a => ({...a, last: lastSeen(a.key)}))
+  ].slice(0,4);
+
+  document.getElementById("strip").innerHTML = shown.map(a => {
+    const n = dAgo(a.last);
+    const s = n===null ? "—" : n===0 ? "auj." : n===1 ? "hier" : `J-${n}`;
+    const c = n===null ? "var(--hint)" : n<=2 ? a.color : n<=7 ? "var(--yellow)" : "var(--orange)";
+    return `<div class="sc">
+      <div class="sc-e">${a.emoji}</div>
+      <div class="sc-d" style="color:${c}">${s}</div>
+      <div class="sc-l">${a.label.split(" ")[0]}</div>
+    </div>`;
+  }).join("");
+}
+
+// ─── CALENDAR ─────────────────────────────────────────────────
+function renderCal() {
+  const y = cur.getFullYear(), m = cur.getMonth();
+  document.getElementById("cal-m").textContent =
+    new Date(y,m,1).toLocaleDateString("fr-FR", {month:"long", year:"numeric"});
+
+  const g = document.getElementById("cgrid"); g.innerHTML = "";
+  const off = (new Date(y,m,1).getDay() + 6) % 7;
+  const days = new Date(y,m+1,0).getDate();
+
+  for (let i=0; i<off; i++) {
+    const e = document.createElement("div"); e.className = "cell empty"; g.appendChild(e);
+  }
+  for (let d=1; d<=days; d++) {
+    const key = dk(y,m,d), entry = DATA[key]||null;
+    const actKeys = entry ? Object.keys(entry.acts||{}) : [], has = actKeys.length > 0;
+    const cell = document.createElement("div");
+    const dt = new Date(y,m,d); dt.setHours(0,0,0,0);
+    const isT = dt.getTime() === today.getTime(), isFut = dt > today;
+    cell.className = "cell" + (has?" ha":"") + (isT?" today":"") + (isFut?" future":"");
+    if (has) {
+      const a0 = ACTS.find(x => x.key === actKeys[0]);
+      cell.style.background = actKeys.length===1 && a0 ? a0.color+"18" : "#f8f9fb";
+    }
+    const icons = actKeys.map(k => ACTS.find(x=>x.key===k)?.emoji||"").map(e=>`<span class="ci">${e}</span>`).join("");
+    cell.innerHTML = `<span class="cn">${d}</span><div class="cicons">${icons}</div>`;
+    if (!isFut) cell.addEventListener("click", () => has ? openDetail(key,dt) : openSheet(key,dt));
+    g.appendChild(cell);
+  }
+}
+
+// ─── SAISIE SHEET ─────────────────────────────────────────────
+function openSheet(key, dt) {
+  shKey = key;
+  const entry = DATA[key]||{};
+  shActData = {};
+  if (entry.acts) Object.entries(entry.acts).forEach(([k,v]) => { shActData[k] = {...v}; });
+  shEffort = entry.effort||null;
+  document.getElementById("sh-dt").textContent =
+    dt.toLocaleDateString("fr-FR", {weekday:"long", day:"numeric", month:"long"});
+  renderShActs(); renderEffort();
+  document.getElementById("sov").classList.remove("hid");
+}
+
+function renderShActs() {
+  document.getElementById("sh-acts").innerHTML = ACTS.map(a => {
+    const on = shActData[a.key] !== undefined;
+    const d = shActData[a.key]||{};
+    return `<div class="sh-act${on?" on":""}" data-k="${a.key}" style="--act-c:${a.color}">
+      <div class="sh-act-hdr">
+        <div class="shl"><span class="she">${a.emoji}</span><span class="shn">${a.label}</span></div>
+        <div class="shck">${on?"✓":""}</div>
+      </div>
+      <div class="sh-meta">
+        <div class="mf">
+          <div class="mf-lbl">Durée</div>
+          <div class="mf-box">
+            <input type="number" min="0" placeholder="—" value="${d.dur||""}" data-k="${a.key}" data-t="dur" aria-label="Durée en minutes">
+            <span class="mf-unit">min</span>
+          </div>
+        </div>
+        <div class="mf">
+          <div class="mf-lbl">Distance</div>
+          <div class="mf-box">
+            <input type="number" min="0" step="0.1" placeholder="—" value="${d.km||""}" data-k="${a.key}" data-t="km" aria-label="Distance en km">
+            <span class="mf-unit">km</span>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+
+  document.querySelectorAll(".sh-act-hdr").forEach(h => {
+    h.addEventListener("click", () => {
+      const k = h.closest(".sh-act").dataset.k;
+      if (shActData[k] !== undefined) delete shActData[k]; else shActData[k] = {};
+      renderShActs();
+    });
+  });
+  document.querySelectorAll(".sh-meta input").forEach(inp => {
+    inp.addEventListener("click", e => e.stopPropagation());
+    inp.addEventListener("input", () => {
+      const k = inp.dataset.k, t = inp.dataset.t, v = parseFloat(inp.value);
+      if (!shActData[k]) shActData[k] = {};
+      if (v > 0) shActData[k][t] = v; else delete shActData[k][t];
+    });
+  });
+}
+
+function renderEffort() {
+  document.querySelectorAll(".eff-btn").forEach(b => {
+    b.className = "eff-btn";
+    if (b.dataset.e === shEffort)
+      b.classList.add(b.dataset.e==="intense"?"ei":b.dataset.e==="modere"?"em":"ef");
+  });
+}
+
+document.querySelectorAll(".eff-btn").forEach(b => b.addEventListener("click", () => {
+  shEffort = shEffort === b.dataset.e ? null : b.dataset.e;
+  renderEffort();
+}));
+
+document.getElementById("sh-save").addEventListener("click", () => {
+  if (!shKey) return;
+  if (Object.keys(shActData).length === 0) delete DATA[shKey];
+  else DATA[shKey] = { acts: JSON.parse(JSON.stringify(shActData)), ...(shEffort?{effort:shEffort}:{}) };
+  saveState();
+  document.getElementById("sov").classList.add("hid");
+  renderStrip(); renderCal();
+  if (activeTab === "v-recap") renderRecap();
+});
+
+document.getElementById("sh-cancel").addEventListener("click", () =>
+  document.getElementById("sov").classList.add("hid"));
+document.getElementById("sov").addEventListener("click", e => {
+  if (e.target === document.getElementById("sov"))
+    document.getElementById("sov").classList.add("hid");
+});
+
+// ─── DETAIL SHEET ─────────────────────────────────────────────
+function openDetail(key, dt) {
+  const entry = DATA[key], actKeys = Object.keys(entry.acts||{});
+  const efC = {intense:{l:"🔥 Intense",c:"#e0714a"},modere:{l:"⚡ Modéré",c:"#e0b44a"},facile:{l:"🌱 Facile",c:"#1D9E75"}};
+  const ec = entry.effort ? efC[entry.effort] : null;
+
+  let html = `<div class="sh-h"></div>
+    <div class="sh-dt">${dt.toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})}</div>`;
+  if (ec) html += `<div style="display:inline-block;background:${ec.c}15;color:${ec.c};border-radius:8px;padding:5px 11px;font-size:10px;font-weight:700;margin-bottom:10px">${ec.l}</div>`;
+
+  actKeys.forEach(k => {
+    const a = ACTS.find(x=>x.key===k); if (!a) return;
+    const d = entry.acts[k]||{};
+    html += `<div class="det-act-card" style="border-left:3px solid ${a.color}">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:18px">${a.emoji}</span>
+        <span style="font-size:12px;font-weight:700;color:${a.color}">${a.label}</span>
+      </div>
+      ${d.dur||d.km ? `<div class="det-pills">
+        ${d.dur?`<span class="det-pill" style="background:#8b85e815;color:#8b85e8">⏱ ${fmtDur(d.dur)}</span>`:""}
+        ${d.km?`<span class="det-pill" style="background:#378ADD15;color:#378ADD">📍 ${d.km} km</span>`:""}
+      </div>` : ""}
+    </div>`;
+  });
+
+  html += `<button class="btn-p" id="det-edit" style="margin-top:8px">✏️ Modifier</button>
+    <button class="btn-g" id="det-close">Fermer</button>`;
+
+  document.getElementById("det-sht").innerHTML = html;
+  document.getElementById("det-ov").classList.remove("hid");
+  document.getElementById("det-edit").onclick = () => {
+    document.getElementById("det-ov").classList.add("hid");
+    openSheet(key, dt);
+  };
+  document.getElementById("det-close").onclick = () =>
+    document.getElementById("det-ov").classList.add("hid");
+}
+
+document.getElementById("det-ov").addEventListener("click", e => {
+  if (e.target === document.getElementById("det-ov"))
+    document.getElementById("det-ov").classList.add("hid");
+});
+
+// ─── RECAP ────────────────────────────────────────────────────
+function renderRecap() {
+  const y = cur.getFullYear(), m = cur.getMonth();
+  const days = new Date(y,m+1,0).getDate();
+  let totKm=0, totDur=0, activeDays=0, curStr=0, maxStr=0;
+  const aStats={}, dayCount={};
+
+  for (let d=1; d<=days; d++) {
+    const entry = DATA[dk(y,m,d)];
+    if (entry && entry.acts && Object.keys(entry.acts).length) {
+      activeDays++; curStr++; if (curStr>maxStr) maxStr=curStr;
+      const dow = new Date(y,m,d).getDay();
+      dayCount[dow] = (dayCount[dow]||0) + 1;
+      Object.entries(entry.acts).forEach(([k,v]) => {
+        if (!aStats[k]) aStats[k] = {count:0,km:0,dur:0};
+        aStats[k].count++;
+        if (v.km) { aStats[k].km += v.km; totKm += v.km; }
+        if (v.dur) { aStats[k].dur += v.dur; totDur += v.dur; }
+      });
+    } else curStr = 0;
+  }
+
+  const topDays = Object.entries(dayCount).sort((a,b)=>b[1]-a[1]).slice(0,3);
+  const mLbl = new Date(y,m,1).toLocaleDateString("fr-FR",{month:"long",year:"numeric"});
+  const pplActs = ACTS.filter(a => PPL_KEYS.includes(a.key));
+  const hasPPL = pplActs.some(a => aStats[a.key]);
+
+  let html = `<div class="rec-title">📊 ${mLbl}</div>
+  <div class="stat-grid">
+    <div class="stat-card"><div class="stat-v">${activeDays}</div><div class="stat-l">Jours actifs</div></div>
+    <div class="stat-card"><div class="stat-v">${Math.round(totKm)}<span style="font-size:12px;color:var(--hint)"> km</span></div><div class="stat-l">Parcourus</div></div>
+    <div class="stat-card"><div class="stat-v" style="font-size:${totDur>=60?14:20}px">${fmtDur(totDur)||"—"}</div><div class="stat-l">De sport</div></div>
+    <div class="stat-card"><div class="stat-v">${maxStr}<span style="font-size:12px;color:var(--hint)"> j</span></div><div class="stat-l">Série max</div></div>
+  </div>`;
+
+  if (maxStr > 1) html += `<div class="streak-box">
+    <span style="font-size:22px">🔥</span>
+    <div><div class="streak-txt">Série de ${maxStr} jours !</div>
+      <div class="streak-sub">meilleure série du mois</div></div>
+  </div>`;
+
+  if (hasPPL) {
+    html += `<div class="rec-sec">🏋🏻‍♀️ PPL — Push Pull Leg</div><div class="ppl-box">`;
+    let pplDur=0, pplCount=0;
+    pplActs.forEach(a => {
+      const s = aStats[a.key]; if (!s) return;
+      pplDur += s.dur; pplCount += s.count;
+      html += `<div class="ppl-row">
+        <div style="display:flex;align-items:center;gap:7px;font-size:12px">
+          <span>${a.emoji}</span><span style="color:${a.color};font-weight:700">${a.label}</span>
+        </div>
+        <div style="display:flex;gap:5px;align-items:center">
+          <span style="font-size:9px;color:var(--hint);font-family:var(--mono)">${s.count}×</span>
+          ${s.dur?`<span class="pill-tag" style="color:#8b85e8;background:#8b85e812">${fmtDur(s.dur)}</span>`:""}
+          ${s.km?`<span class="pill-tag" style="color:#378ADD;background:#378ADD12">${s.km}km</span>`:""}
+        </div>
+      </div>`;
+    });
+    html += `<div class="ppl-row" style="border-top:1px solid var(--border);margin-top:4px;padding-top:7px">
+      <span style="font-size:11px;font-weight:800;color:var(--text)">Total PPL</span>
+      <div style="display:flex;gap:5px">
+        <span style="font-size:9px;color:var(--hint);font-family:var(--mono)">${pplCount}×</span>
+        ${pplDur?`<span class="pill-tag" style="color:#8b85e8;background:#8b85e812">${fmtDur(pplDur)}</span>`:""}
+      </div>
+    </div></div>`;
+  }
+
+  html += `<div class="rec-sec">Par activité</div>`;
+  ACTS.filter(a => !PPL_KEYS.includes(a.key) && aStats[a.key]).forEach(a => {
+    const s = aStats[a.key];
+    html += `<div class="act-row">
+      <div class="act-row-main">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:16px">${a.emoji}</span>
+          <span style="font-size:12px;font-weight:700;color:${a.color}">${a.label}</span>
+        </div>
+        <span style="font-size:10px;color:var(--hint);font-family:var(--mono)">${s.count}×</span>
+      </div>
+      ${s.dur||s.km ? `<div class="act-row-sub">
+        ${s.dur?`<span class="pill-tag" style="color:#8b85e8;background:#8b85e812">⏱ ${fmtDur(s.dur)}</span>`:""}
+        ${s.km?`<span class="pill-tag" style="color:#378ADD;background:#378ADD12">📍 ${Math.round(s.km)} km</span>`:""}
+      </div>` : ""}
+    </div>`;
+  });
+
+  if (topDays.length) {
+    html += `<div class="rec-sec">Top jours actifs</div>
+    <div style="background:var(--white);border-radius:11px;border:1px solid var(--border);padding:10px 6px 0;margin-bottom:8px">
+      <div class="podium-wrap">`;
+    [1,0,2].forEach(i => {
+      if (!topDays[i]) return;
+      const [dow,n] = topDays[i];
+      html += `<div class="pod-col">
+        <div style="font-size:9px;color:var(--hint);font-family:var(--mono)">${n}× / mois</div>
+        <div style="font-size:12px;font-weight:800;color:var(--text)">${DAY_NAMES[dow]}</div>
+        <div class="pod-bar" style="height:${POD_H[i]}px;background:${POD_C[i]}22;border:1.5px solid ${POD_C[i]}55">
+          <span style="font-size:20px;padding-bottom:4px">${MEDALS[i]}</span>
+        </div>
+      </div>`;
+    });
+    html += `</div></div>`;
+  }
+
+  document.getElementById("recap-content").innerHTML = html;
+}
+
+// ─── MANAGE ───────────────────────────────────────────────────
+function renderMgmt() {
+  document.getElementById("mgmt-list").innerHTML = ACTS.map(a => `
+    <div class="mgmt-row">
+      <div style="display:flex;align-items:center;gap:9px;flex:1;min-width:0">
+        <span style="font-size:20px;flex-shrink:0">${a.emoji}</span>
+        <span style="font-size:12px;font-weight:700;color:${a.color};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.label}</span>
+        <div style="width:10px;height:10px;border-radius:3px;background:${a.color};flex-shrink:0"></div>
+      </div>
+      <div style="display:flex;gap:5px;flex-shrink:0">
+        <button class="mgmt-edit" data-k="${a.key}" aria-label="Modifier ${a.label}">✏️</button>
+        <button class="mgmt-del" data-k="${a.key}" aria-label="Supprimer ${a.label}">✕</button>
+      </div>
+    </div>`).join("");
+
+  document.querySelectorAll(".mgmt-del").forEach(b => b.addEventListener("click", () => {
+    if (ACTS.length <= 1) return;
+    const k = b.dataset.k;
+    ACTS = ACTS.filter(a => a.key !== k);
+    Object.keys(DATA).forEach(day => {
+      if (DATA[day]?.acts) {
+        delete DATA[day].acts[k];
+        if (!Object.keys(DATA[day].acts).length) delete DATA[day];
+      }
+    });
+    saveState();
+    renderMgmt(); renderStrip(); renderCal();
+  }));
+
+  document.querySelectorAll(".mgmt-edit").forEach(b => b.addEventListener("click", () => {
+    const act = ACTS.find(a => a.key === b.dataset.k); if (!act) return;
+    editKey = act.key; editColor = act.color;
+    document.getElementById("edit-emo").value = act.emoji;
+    document.getElementById("edit-name").value = act.label;
+    buildColors("edit-colors", act.color, c => { editColor = c; });
+    document.getElementById("edit-ov").classList.remove("hid");
+  }));
+}
+
+document.getElementById("edit-save").addEventListener("click", () => {
+  const act = ACTS.find(a => a.key === editKey); if (!act) return;
+  act.emoji = document.getElementById("edit-emo").value.trim() || act.emoji;
+  act.label = document.getElementById("edit-name").value.trim() || act.label;
+  act.color = editColor;
+  saveState();
+  document.getElementById("edit-ov").classList.add("hid");
+  renderMgmt(); renderStrip(); renderCal();
+});
+
+document.getElementById("edit-cancel").addEventListener("click", () =>
+  document.getElementById("edit-ov").classList.add("hid"));
+document.getElementById("edit-ov").addEventListener("click", e => {
+  if (e.target === document.getElementById("edit-ov"))
+    document.getElementById("edit-ov").classList.add("hid");
+});
+
+buildColors("add-colors", addColor, c => { addColor = c; });
+
+document.getElementById("add-act-btn").addEventListener("click", () => {
+  const emo = document.getElementById("add-emo").value.trim() || "⭐";
+  const nm = document.getElementById("add-name").value.trim();
+  if (!nm) return;
+  ACTS.push({ key: "act_" + Date.now(), emoji: emo, label: nm, color: addColor });
+  saveState();
+  document.getElementById("add-name").value = "";
+  document.getElementById("add-emo").value = "⭐";
+  renderMgmt(); renderStrip(); renderCal();
+});
+
+// ─── TABS & NAV ───────────────────────────────────────────────
+document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => {
+  document.querySelectorAll(".tab").forEach(x => x.classList.remove("active"));
+  t.classList.add("active");
+  showView(t.dataset.v);
+  if (t.dataset.v === "v-recap") renderRecap();
+}));
+
+document.getElementById("open-mgmt").addEventListener("click", () => {
+  renderMgmt();
+  buildColors("add-colors", addColor, c => { addColor = c; });
+  showView("v-mgmt");
+});
+
+document.getElementById("back-btn").addEventListener("click", () => {
+  showView("v-cal");
+  document.querySelectorAll(".tab").forEach((t,i) => t.classList.toggle("active", i===0));
+});
+
+document.getElementById("prev").addEventListener("click", () => {
+  cur.setMonth(cur.getMonth() - 1); renderCal();
+  if (activeTab === "v-recap") renderRecap();
+});
+document.getElementById("next").addEventListener("click", () => {
+  cur.setMonth(cur.getMonth() + 1); renderCal();
+  if (activeTab === "v-recap") renderRecap();
+});
+
+// ─── INIT ─────────────────────────────────────────────────────
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js").catch(() => {});
+}
+
+document.getElementById("motiv").textContent = MOTIVS[Math.floor(Math.random() * MOTIVS.length)];
+renderStrip();
+renderCal();
+</script>
+</body>
+</html>
